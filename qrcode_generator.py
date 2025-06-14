@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from itertools import chain
 
 class QRgen():
     """
@@ -27,7 +28,7 @@ class QRgen():
 
         return text
     
-    def plot_qr_structure(self, binary_seq, returns=False):
+    def plot_qr_structure(self, binary_seq, grey_markup=False):
         arr = np.zeros((21, 21))
         for i in range(21):
             if 0<=i<=6 or 14<=i<=20:
@@ -43,7 +44,7 @@ class QRgen():
             if i in [0, 6, 14, 20]:
                 arr[0:6, i] = 1
                 if i in [0, 6]:
-                    arr[14:20, i] = 1
+                    arr[14:20, i] = 1#6,8
 
             if i in [2, 3, 4, 16, 17, 18]:
                 arr[2:5, i] = 1
@@ -57,21 +58,87 @@ class QRgen():
         arr[13, 8] = 1
         arr[-1, -2] = 1
 
-        plt.imshow(arr, cmap="Greys")
-        plt.show()
-        if returns: return arr
+        if grey_markup:
+            arr = np.where(arr == 1, 0.5, arr)
+
+        return arr
+
+    def plot_data(self, arr, bseq, moves_):
+        colored_blocks = []
+        move_history = []
+        row, col = 18, 20
+
+        for move_name, dir in moves_:
+            move_history.append(move_name)
+
+            try:
+                if move_history[-2] == 'u' and move_history[-1] == 'l':
+                    row -= 1
+                elif move_history[-2] == 'l' and move_history[-1] == 'd':
+                    row += 2
+                    col += 2
+                elif move_history[-2] == 'd' and move_history[-1] == 'l':
+                    row += 0
+                    col += 0
+                elif move_history[-2] == 'l' and move_history[-1] == 'u':
+                    row -= 1
+                    col += 2
+            except: pass
+
+            for bit, move in zip(bseq, dir):
+                arr[row, col] = bit
+                colored_blocks.append((row, col))
+                print(f"colored: {row};{col}")
+
+                if move[2] > move[3]:
+                    row -= 1
+                elif move[2] < move[3]: 
+                    row += 1
+                if move[0] > move[1]:
+                    col -= 1
+                elif move[0] < move[1]:
+                    col += 1
+
+
+                    
+
+
+
+
+        print(f"double colored blocks: {len(colored_blocks) != len(set(colored_blocks))}")
+
+
+
+
+
 
     
 
 
 
             
-
-        
-
-
-    
 x = QRgen()
 text = "Hello, world"
-bseq = x.binary_encoding(text)
-x.plot_qr_structure(bseq)
+#bseq = x.binary_encoding(text)
+bseq = np.array([i/8 for i in range(32)])
+bytes_amount = bseq.size//8
+   
+#left, right, up, down
+byte_move_up = ('u', [(1, 0, 0, 0), (0, 1, 1, 0)]*4)
+byte_move_left = ('l', [(0, 0, 0, 1), (1, 0, 1, 0)]*4)
+byte_move_down = ('d', [(1, 0, 0, 0), (0, 1, 0, 1)]*4)
+moves= [byte_move_up, byte_move_up, byte_move_left, byte_move_down, byte_move_down, byte_move_left, byte_move_up, byte_move_up, byte_move_left, byte_move_down, byte_move_down, byte_move_left, byte_move_up, byte_move_up, byte_move_up]
+moves = moves[:bytes_amount*8]
+
+
+
+print(bseq)
+print(bytes_amount)
+print(moves)
+
+arr = x.plot_qr_structure(bseq, grey_markup=True)
+x.plot_data(arr, bseq, moves)
+plt.imshow(arr, cmap="Greys")
+plt.show()
+
+
